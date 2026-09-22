@@ -124,54 +124,88 @@ concurrency and speed but not the outputs' settings.
 
 ## 4. 채점(파싱) 방식
 
-- 사용한 파서/로직: _(자체 구현 / 차용 도구명 + 링크)_
-- 동작 방식 요약: _(예: 어떤 순서로 규칙을 적용하는지, 실패 시 fallback은 무엇인지)_
+- **공식 파서**: MMMU의 [`eval_utils.py`](https://github.com/MMMU-Benchmark/MMMU/blob/268471d0d488258990025331c7528359c324aa25/mmmu/utils/eval_utils.py)를 고정 버전으로 사용했다. 원본은 [`scripts/eval_utils_official.py`](scripts/eval_utils_official.py)에 보관했다.
+- **추가한 코드**: [`scripts/score_mmmu.py`](scripts/score_mmmu.py)는 저장된 `outputs/raw.jsonl`을 읽어 답 추출, 정답 비교, 과목별 집계와 결과 저장을 수행한다. 모델을 다시 실행하거나 원본 `response`를 수정하지 않는다.
+- **공식 함수의 변경점**: 객관식에서 후보를 찾지 못했을 때 `random.choice(all_choices)`로 찍던 한 줄만 `None`으로 바꿨다. 스크립트는 공식 원본의 SHA256을 확인한 뒤 수정본 `eval_utils_no_random.py`를 출력 디렉터리에 생성한다. 나머지 공식 답 추출·비교 규칙은 유지했다.
+
+**객관식**
+
+1. 응답의 `(A)`, `(B)` 같은 괄호 문자를 찾는다.
+2. 괄호 후보가 없으면 공백으로 구분된 ` A `, ` B ` 등을 찾는다.
+3. 위 후보가 없고 응답이 5단어를 초과하면 선택지 내용과 대소문자를 무시한 문자열 매칭을 시도한다.
+4. 후보가 여러 개이면 해당 매칭 방식에서 가장 뒤에 등장한 후보를 선택한다. 후보가 없으면 `parsed_pred=null`, `parse_failed=True`, `correct=False`로 기록한다.
+5. 추출한 선택지 문자와 정답 문자가 일치하면 정답이다. 보기 나열이나 수식·도형 표지가 답으로 잡힐 수 있으며, 추출 성공이 최종 답의 완결을 의미하지는 않는다.
+
+**주관식**
+
+공식 `parse_open_response`로 핵심 구절과 숫자 후보를 추출하고 `eval_open`으로 비교한다. 문자열은 소문자로 정규화하고, 숫자는 예측과 정답 양쪽을 소수점 둘째 자리로 반올림한다. 정규화된 숫자의 일치 또는 공식 문자열 포함 규칙으로 정답을 판정한다. 정답 필드에 복수 허용 답이 문자열 목록으로 저장된 경우 목록으로 복원해 비교한다. 빈 응답·후보 없음은 추출 실패로 처리하고, 후보 목록은 저장 시 일관된 순서로 정렬한다.
+
+**채점 재현** — 저장소 루트에서 Python 3.11 이상과 `uv`를 사용한다. 필요한 패키지 버전은 스크립트의 인라인 의존성에 고정되어 있다.
+
+```bash
+uv run --script scripts/score_mmmu.py outputs/raw.jsonl results
+```
+
+`results/`에 `scored.jsonl`, `scored.csv`, `errors.csv`, `by_subject.csv`, `by_question_type.csv`, `by_finish_reason.csv`, `by_num_images.csv`, `summary.json`과 수정된 파서를 생성한다. 생성 길이 제한에 걸린 응답도 동일한 규칙으로 채점하고 900문항의 분모에 포함한다. 수동 정답 보정이나 별도의 허용 오차는 추가하지 않았다.
 
 ## 5. 결과
 
+Acc는 정답률(%)이며 소수점 둘째 자리까지 표시했다.
+
 | No. | Subject | Data Num | Acc |
 |---|---|---|---|
-| 1 | Accounting | 30 | |
-| 2 | Agriculture | 30 | |
-| 3 | Architecture_and_Engineering | 30 | |
-| 4 | Art | 30 | |
-| 5 | Art_Theory | 30 | |
-| 6 | Basic_Medical_Science | 30 | |
-| 7 | Biology | 30 | |
-| 8 | Chemistry | 30 | |
-| 9 | Clinical_Medicine | 30 | |
-| 10 | Computer_Science | 30 | |
-| 11 | Design | 30 | |
-| 12 | Diagnostics_and_Laboratory_Medicine | 30 | |
-| 13 | Economics | 30 | |
-| 14 | Electronics | 30 | |
-| 15 | Energy_and_Power | 30 | |
-| 16 | Finance | 30 | |
-| 17 | Geography | 30 | |
-| 18 | History | 30 | |
-| 19 | Literature | 30 | |
-| 20 | Manage | 30 | |
-| 21 | Marketing | 30 | |
-| 22 | Materials | 30 | |
-| 23 | Math | 30 | |
-| 24 | Mechanical_Engineering | 30 | |
-| 25 | Music | 30 | |
-| 26 | Pharmacy | 30 | |
-| 27 | Physics | 30 | |
-| 28 | Psychology | 30 | |
-| 29 | Public_Health | 30 | |
-| 30 | Sociology | 30 | |
-| | **Overall (macro avg)** | **900** | |
+| 1 | Accounting | 30 | 73.33 |
+| 2 | Agriculture | 30 | 60.00 |
+| 3 | Architecture_and_Engineering | 30 | 36.67 |
+| 4 | Art | 30 | 63.33 |
+| 5 | Art_Theory | 30 | 73.33 |
+| 6 | Basic_Medical_Science | 30 | 66.67 |
+| 7 | Biology | 30 | 60.00 |
+| 8 | Chemistry | 30 | 30.00 |
+| 9 | Clinical_Medicine | 30 | 70.00 |
+| 10 | Computer_Science | 30 | 53.33 |
+| 11 | Design | 30 | 73.33 |
+| 12 | Diagnostics_and_Laboratory_Medicine | 30 | 43.33 |
+| 13 | Economics | 30 | 70.00 |
+| 14 | Electronics | 30 | 40.00 |
+| 15 | Energy_and_Power | 30 | 56.67 |
+| 16 | Finance | 30 | 60.00 |
+| 17 | Geography | 30 | 53.33 |
+| 18 | History | 30 | 70.00 |
+| 19 | Literature | 30 | 76.67 |
+| 20 | Manage | 30 | 36.67 |
+| 21 | Marketing | 30 | 86.67 |
+| 22 | Materials | 30 | 53.33 |
+| 23 | Math | 30 | 60.00 |
+| 24 | Mechanical_Engineering | 30 | 50.00 |
+| 25 | Music | 30 | 33.33 |
+| 26 | Pharmacy | 30 | 63.33 |
+| 27 | Physics | 30 | 56.67 |
+| 28 | Psychology | 30 | 73.33 |
+| 29 | Public_Health | 30 | 76.67 |
+| 30 | Sociology | 30 | 63.33 |
+| | **Overall (macro avg)** | **900** | **59.44** |
 
-계산식: `Overall = mean(30개 과목 accuracy)` _(다른 방식을 썼다면 명시)_
+계산식: `Overall = mean(30개 과목 accuracy)`. 모든 과목이 30문항이므로 전체 문항 기준 정확도 `535 / 900 × 100 = 59.4444...%`와 같다.
+
+| 문항 유형 | 문항 수 | 정답 수 | 정답률 (%) |
+|---|---:|---:|---:|
+| 객관식 | 847 | 529 | 62.46 |
+| 주관식 | 53 | 6 | 11.32 |
+| 전체 | 900 | 535 | 59.44 |
+
+오답은 365문항이다. 답 추출 실패는 6문항이며 모두 `finish_reason=length`였다. 길이 제한에 도달한 71문항도 제외하지 않고 채점했으며, 이 중 19문항은 추출 답이 정답 키와 일치하고 52문항은 오답이었다. 이 수치는 풀이의 완결 여부를 별도로 보정하지 않은 채점 결과다.
 
 ## 6. 공식 수치와의 비교
 
-| | Overall (MMMU val) |
-|---|---|
-| 공식 (Qwen3-VL Technical Report) | 67.4 |
-| 우리 재현 결과 | |
-| 차이 (Δ) | |
+| | Overall accuracy (%) |
+|---|---:|
+| 공식 (Qwen3-VL Technical Report의 MMMU 보고 수치) | 67.40 |
+| 우리 재현 결과 (MMMU validation, 900문항) | 59.44 |
+| 차이 (Δ, 우리 결과 − 공식 수치) | **−7.96%p** |
+
+차이는 반올림 전 정확도로 계산했다: `535 / 900 × 100 − 67.4 = −7.9556...%p`.
+공식 수치와 이번 실행의 평가 split·생성 설정이 동일하다고 확인한 것은 아니므로, 위 표는 보고 수치의 비교다. 원인 해석은 7절에서 다룬다.
 
 ## 7. 격차 분석
 
