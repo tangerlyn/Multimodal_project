@@ -5,7 +5,7 @@
 - **작성일**: 2026-09-25
 - **재현 커맨드**: `bash scripts/run_mmmu_eval.sh --preset best --out outputs/best.jsonl --model_path Qwen/Qwen3-VL-4B-Instruct --data_root "$HF_DATASETS_CACHE"`
 
-제출 실행은 `best` 프리셋(2026-09-23)입니다. 첫 실행(베이스라인, 2026-09-21, 59.44%)과 시드 재현 실행(2026-09-25)은 §8과 [docs/analysis_report.md](docs/analysis_report.md)에 비교 자료로 남겼습니다. 
+제출 실행은 `best` 프리셋(2026-09-23)입니다. 첫 실행(베이스라인, 2026-09-21, 59.44%)과 시드 재현 실행(2026-09-25)은 §8과 [docs/analysis_report.md](../docs/analysis_report.md)에 비교 자료로 남겼습니다.
 
 ---
 
@@ -19,10 +19,10 @@
 | 사용 GPU | NVIDIA A100-SXM4-40GB, 40960 MiB, 580.82.07 (Google Colab) |
 | 실측 peak VRAM | 36.7 GiB (37,614 MiB): `nvidia-smi memory.used`를 2초마다 샘플링한 장치 기준 최댓값. vLLM이 `gpu_memory_utilization=0.9`로 미리 잡는 KV 캐시 포함 |
 | 총 소요 시간 | 9,962 s (2.77시간), 900문항 + fallback 2차 패스, 엔진 기동 포함. 설치와 다운로드 약 5분 별도 |
-| 의존성 | [`requirements.txt`](requirements.txt), 실행 환경 전체는 [`requirements.lock.txt`](requirements.lock.txt). Colab의 torchaudio 수정은 [`README.md`](README.md) 참고 |
+| 의존성 | [`requirements.txt`](../requirements.txt), 실행 환경 전체는 [`requirements.lock.txt`](../requirements.lock.txt). Colab의 torchaudio 수정은 [`README.md`](../README.md) 참고 |
 | 실행 커맨드 | `bash scripts/run_mmmu_eval.sh --preset best --out outputs/best.jsonl` — 생성 → `check_raw.py` 검증 → fallback → `score_mmmu.py` 채점 → `results/best/results.md` 표 생성을 한 번에 수행. 파인튜닝 모델은 `--model_path <dir>` 또는 `--lora_path <adapter>`만 바꿈 |
 
-출력: [`outputs/best.jsonl`](outputs/best.jsonl) (원본 응답 900건), [`outputs/best.fallback.jsonl`](outputs/best.fallback.jsonl) (2차 패스 77건), [`outputs/best.run_meta.json`](outputs/best.run_meta.json) (버전, GPU, 모든 설정, 프롬프트 해시 `8aa03b32c6bba8ae`, 소스 해시 `b633ca2c8995dc02`, 시간, VRAM). 채점 결과: [`results/`](results/).
+출력: [`outputs/best.jsonl`](../outputs/best.jsonl) (원본 응답 900건), [`outputs/best.fallback.jsonl`](../outputs/best.fallback.jsonl) (2차 패스 77건), [`outputs/best.run_meta.json`](../outputs/best.run_meta.json) (버전, GPU, 모든 설정, 프롬프트 해시 `8aa03b32c6bba8ae`, 소스 해시 `b633ca2c8995dc02`, 시간, VRAM). 채점 결과: [`results/`](../results/).
 
 ## 2. 프롬프트
 
@@ -94,11 +94,11 @@ End your response with a final line of the form "Answer: <your answer>".<|im_end
 
 ## 4. 채점(파싱) 방식
 
-- **사용한 파서**: MMMU 공식 저장소 [`MMMU-Benchmark/MMMU` 커밋 `268471d`](https://github.com/MMMU-Benchmark/MMMU/blob/268471d0d488258990025331c7528359c324aa25/mmmu/utils/eval_utils.py)의 `eval_utils.py`를 [`scripts/mmmu_official_eval_utils.py`](scripts/mmmu_official_eval_utils.py)로 바이트 동일하게 포함하고, 로드 시 SHA256(`cc1a89b4…`)을 검증합니다. `parse_multi_choice_response`, `eval_multi_choice`, `parse_open_response`, `eval_open`을 그대로 호출합니다. 채점 스크립트는 [`scripts/score_mmmu.py`](scripts/score_mmmu.py)입니다.
+- **사용한 파서**: MMMU 공식 저장소 [`MMMU-Benchmark/MMMU` 커밋 `268471d`](https://github.com/MMMU-Benchmark/MMMU/blob/268471d0d488258990025331c7528359c324aa25/mmmu/utils/eval_utils.py)의 `eval_utils.py`를 [`scripts/mmmu_official_eval_utils.py`](../scripts/mmmu_official_eval_utils.py)로 바이트 동일하게 포함하고, 로드 시 SHA256(`cc1a89b4…`)을 검증합니다. `parse_multi_choice_response`, `eval_multi_choice`, `parse_open_response`, `eval_open`을 그대로 호출합니다. 채점 스크립트는 [`scripts/score_mmmu.py`](../scripts/score_mmmu.py)입니다.
 - **공식 코드의 유일한 변경**: 후보를 찾지 못했을 때 `random.choice(all_choices)`로 찍던 한 줄을 "답 없음(오답)"으로 바꿨습니다. 찍어서 맞힌 것을 점수에 넣지 않기 위함입니다.
 - **동작 순서 (객관식)**: ① 응답에서 `(A)` 형태의 괄호 문자를 찾는다 → ② 없으면 공백으로 둘러싸인 ` A `를 찾는다 → ③ 없고 응답이 5단어를 넘으면 보기 본문을 대소문자 무시로 찾는다 → ④ 후보가 여럿이면 가장 뒤에 나온 것을 택한다. **주관식**: 숫자·핵심 구절을 추출해 소수 둘째 자리 반올림, 소문자 정규화, 포함 여부로 비교. 정답이 리스트 문자열이면 `ast.literal_eval`로 복원.
 - **두 점수를 냅니다.** *엄격 점수*는 위 공식 규칙만 적용한 값입니다. *파이프라인 점수*(§5의 Acc)는 공식 규칙 앞에 두 단계를 둡니다: ⓐ fallback 파일에 있는 문항은 **원래 응답 대신 2차 패스 이어쓰기(최대 16토큰)만으로** 채점합니다. 객관식은 이어쓰기 맨 앞이 유효한 보기 문자면 그것을 답으로 쓰고, 아니면 이어쓰기에 ⓑ와 공식 규칙을 적용합니다. ⓑ 그 외 문항은 마지막 `Answer: X` 줄, 없으면 마지막 `\boxed{X}`를 유효한 보기 문자일 때 채택(주관식은 마지막 `Answer:` 줄만 공식 파서에 넣음). 둘 다 없으면 공식 규칙으로 내려갑니다. 이 순서가 필요한 이유는 공식 규칙의 "가장 뒤 괄호 문자"가 정답을 명시한 뒤 보기를 재나열한 응답에서 실패하기 때문입니다(`validation_Math_30`: `\boxed{C}`가 정답인데 E 추출).
-- **효과**: 추출 방법 분포(baseline) — `Answer:` 줄 822, fallback 문자 68, 공식 규칙 1, 추출 실패 9. 명시 답 규칙 +24/−11, fallback +19/−12, 합계 +20문항(엄격 63.00% → 파이프라인 65.22%). 문항별 판정과 추출 방법은 [`results/scored.jsonl`](results/scored.jsonl)의 `pipeline_method`에 기록됩니다.
+- **효과**: 추출 방법 분포(baseline) — `Answer:` 줄 822, fallback 문자 68, 공식 규칙 1, 추출 실패 9. 명시 답 규칙 +24/−11, fallback +19/−12, 합계 +20문항(엄격 63.00% → 파이프라인 65.22%). 문항별 판정과 추출 방법은 [`results/scored.jsonl`](../results/scored.jsonl)의 `pipeline_method`에 기록됩니다.
 
 ## 5. 결과
 
@@ -208,4 +208,4 @@ Acc는 파이프라인 점수(%)이며 소수점 둘째 자리까지 표시했�
 - **주관식 채점 한계.** 공식 `parse_open_response`는 단위·표기 차이("551" 대 "100kΩ")를 오답 처리합니다. 주관식 53문항은 22/53이며 Tech & Engineering 18문항 중 4만 정답입니다.
 - **하지 않은 것.** 다수결 샘플링(비용 5배, 공식 프로토콜과 비교 불가), RTX 4090 실행(모델 8 GiB + KV 캐시 9.6 GiB로 24 GB에서도 설정 변경 없이 동작할 것으로 계산되나 실측하지 않음).
 - **재현 중 겪은 문제.** Colab CLI 세션은 런타임 토큰이 60분에 만료되어 CLI가 세션을 잃은 것으로 표시하지만 VM은 살아 있으며, 할당 목록에서 새 토큰을 받아 복구했습니다. 시드 재현 실행은 VM이 회수되어 600문항 지점의 백업에서 새 세션으로 이어 돌렸습니다(`resumed: true`, 두 세션 합산 약 2시간 50분). 150문항 배치마다 파일에 기록하는 구조 덕분에 손실이 없었습니다.
-- **상세 분석.** 조건·과정·카테고리별(분과, 과목, 문항 유형, 이미지 수, 보기 수, 응답 길이, 잘림) 비교는 [docs/analysis_report.md](docs/analysis_report.md)에 있습니다.
+- **상세 분석.** 조건·과정·카테고리별(분과, 과목, 문항 유형, 이미지 수, 보기 수, 응답 길이, 잘림) 비교는 [docs/analysis_report.md](../docs/analysis_report.md)에 있습니다.
