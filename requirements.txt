@@ -1,0 +1,7 @@
+# Top-level pins. vLLM fixes torch (2.13.0) and constrains transformers (>=5.10.4) itself.
+# After the first working install on the run machine, freeze the full set:
+#   pip freeze > requirements.lock.txt
+vllm==0.29.0
+datasets==5.0.1
+huggingface_hub>=1.28.0
+pillow
