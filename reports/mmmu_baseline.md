@@ -1,7 +1,7 @@
 # MMMU-val Baseline Evaluation Report — Qwen3-VL-4B-Instruct
 
-- **팀명**: _(기입)_
-- **팀원**: _(기입)_
+- **팀명**: 1팀
+- **팀원**: 김규린, 김재형, 박건우, 서정우
 - **작성일**: 2026-09-25
 - **재현 커맨드**: `bash scripts/run_mmmu_eval.sh --preset best --out outputs/best.jsonl --model_path Qwen/Qwen3-VL-4B-Instruct --data_root "$HF_DATASETS_CACHE"`
 
