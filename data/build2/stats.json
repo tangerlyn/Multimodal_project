@@ -1,0 +1,82 @@
+{
+  "questions": 3000,
+  "samples": 24000,
+  "valid_samples": 17875,
+  "sample_accuracy": 0.8672,
+  "kept_questions": 245,
+  "pairs_train": 672,
+  "pairs_val": 63,
+  "pairs_train_by_type": {
+    "wrong": 672
+  },
+  "sft_examples_train": 637,
+  "mean_pos_tokens": 325.5,
+  "mean_neg_tokens": 368.6,
+  "filter": {
+    "lo": 0.25,
+    "hi": 0.85,
+    "min_valid": 6,
+    "max_tokens": 1500
+  },
+  "pass_histogram": {
+    "0/6": 5,
+    "0/7": 19,
+    "0/8": 80,
+    "1/6": 8,
+    "1/7": 6,
+    "1/8": 31,
+    "2/6": 7,
+    "2/7": 8,
+    "2/8": 22,
+    "3/6": 1,
+    "3/7": 10,
+    "3/8": 27,
+    "4/6": 6,
+    "4/7": 12,
+    "4/8": 36,
+    "5/6": 16,
+    "5/7": 21,
+    "5/8": 33,
+    "6/6": 82,
+    "6/7": 16,
+    "6/8": 46,
+    "7/7": 124,
+    "7/8": 87,
+    "8/8": 1416,
+    "too_few_valid": 881
+  },
+  "by_category": {
+    "(GradeSchool) Geometric": {
+      "questions": 181,
+      "kept": 5
+    },
+    "(GradeSchool) Non-Geo Math": {
+      "questions": 183,
+      "kept": 4
+    },
+    "(GradeSchool) Science": {
+      "questions": 829,
+      "kept": 54
+    },
+    "Broader STEM Topics": {
+      "questions": 462,
+      "kept": 37
+    },
+    "Commonsense": {
+      "questions": 102,
+      "kept": 20
+    },
+    "Social Science": {
+      "questions": 547,
+      "kept": 56
+    },
+    "Spatial Reasoning": {
+      "questions": 233,
+      "kept": 26
+    },
+    "Tables/Diagrams/Charts": {
+      "questions": 463,
+      "kept": 43
+    }
+  }
+}

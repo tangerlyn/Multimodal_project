@@ -1,0 +1,67 @@
+{
+  "items": 3267,
+  "per_category": {
+    "(GradeSchool) Science": {
+      "available": 3274,
+      "taken": 900
+    },
+    "Broader STEM Topics": {
+      "available": 635,
+      "taken": 500
+    },
+    "Social Science": {
+      "available": 653,
+      "taken": 600
+    },
+    "Tables/Diagrams/Charts": {
+      "available": 4461,
+      "taken": 500
+    },
+    "Commonsense": {
+      "available": 117,
+      "taken": 117
+    },
+    "Spatial Reasoning": {
+      "available": 1357,
+      "taken": 250
+    },
+    "(GradeSchool) Geometric": {
+      "available": 7761,
+      "taken": 200
+    },
+    "(GradeSchool) Non-Geo Math": {
+      "available": 7847,
+      "taken": 200
+    }
+  },
+  "kinds": {
+    "num": 1291,
+    "mc": 1976
+  },
+  "sources": {
+    "MMMath": 72,
+    "MMK12": 1016,
+    "ScienceQA": 358,
+    "Processed": 673,
+    "dvqa": 113,
+    "M3CoT": 685,
+    "R1OneVision": 136,
+    "geoqa_plusConverted": 13,
+    "M3CoTConverted": 61,
+    "R1OneVisionConverted": 13,
+    "ai2d": 25,
+    "geoqa_plus": 37,
+    "chartqa": 23,
+    "K12": 18,
+    "MMK12Converted": 23,
+    "ScienceQAConverted": 1
+  },
+  "dropped": {
+    "not_verifiable": 10476,
+    "multi_image": 2289
+  },
+  "mmmu_overlap_dropped": {
+    "image": 70
+  },
+  "mmmu_image_hashes": 959
+}

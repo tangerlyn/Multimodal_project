@@ -1,0 +1,174 @@
+{
+  "raw": "outputs/base_noimg_s3407.jsonl",
+  "raw_sha256": "fc9e367c22e2d1a1832b0b530aa4858e849d37d6ee230d32f3c8de214158bcdd",
+  "fallback_file": "outputs/base_noimg_s3407.fallback.jsonl",
+  "parser": {
+    "source": "MMMU-Benchmark/MMMU @ 268471d0d488258990025331c7528359c324aa25 mmmu/utils/eval_utils.py",
+    "sha256": "cc1a89b4a27f697702d340bc6a7578b5237135754ddaa9ef105239a3d9847367",
+    "change": "random guess on parse failure -> no answer (wrong)"
+  },
+  "n": 900,
+  "strict": {
+    "correct": 408,
+    "micro_acc": 45.333333333333336,
+    "macro_acc": 45.333333333333336,
+    "parse_failed": 6
+  },
+  "pipeline": {
+    "correct": 416,
+    "micro_acc": 46.22222222222222,
+    "macro_acc": 46.22222222222222,
+    "parse_failed": 6,
+    "methods": {
+      "answer_line": 872,
+      "fallback_letter": 17,
+      "fallback+none": 6,
+      "fallback+official": 3,
+      "official": 2
+    },
+    "fallback_items": 26,
+    "fallback_gain": 4,
+    "fallback_loss": 2,
+    "explicit_answer_gain": 12,
+    "explicit_answer_loss": 6
+  },
+  "delta_vs_official_pp": {
+    "strict": -22.06666666666667,
+    "pipeline": -21.177777777777784
+  },
+  "generation": {
+    "truncated": 26,
+    "loops": 16,
+    "mean_chars": 6101.508888888889,
+    "median_chars": 1722.0,
+    "answer_only": 0
+  },
+  "by_discipline": {
+    "Art & Design": {
+      "n": 120,
+      "strict_correct": 48,
+      "pipeline_correct": 49,
+      "strict_acc": 40.0,
+      "pipeline_acc": 40.833333333333336,
+      "truncated": 3,
+      "loops": 3,
+      "mean_chars": 4706.716666666666
+    },
+    "Business": {
+      "n": 150,
+      "strict_correct": 50,
+      "pipeline_correct": 50,
+      "strict_acc": 33.333333333333336,
+      "pipeline_acc": 33.333333333333336,
+      "truncated": 2,
+      "loops": 1,
+      "mean_chars": 4596.033333333334
+    },
+    "Science": {
+      "n": 150,
+      "strict_correct": 82,
+      "pipeline_correct": 79,
+      "strict_acc": 54.666666666666664,
+      "pipeline_acc": 52.666666666666664,
+      "truncated": 2,
+      "loops": 1,
+      "mean_chars": 5211.7733333333335
+    },
+    "Health & Medicine": {
+      "n": 150,
+      "strict_correct": 79,
+      "pipeline_correct": 80,
+      "strict_acc": 52.666666666666664,
+      "pipeline_acc": 53.333333333333336,
+      "truncated": 1,
+      "loops": 0,
+      "mean_chars": 2766.826666666667
+    },
+    "Humanities & Social Science": {
+      "n": 120,
+      "strict_correct": 71,
+      "pipeline_correct": 73,
+      "strict_acc": 59.166666666666664,
+      "pipeline_acc": 60.833333333333336,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 1695.5333333333333
+    },
+    "Tech & Engineering": {
+      "n": 210,
+      "strict_correct": 78,
+      "pipeline_correct": 85,
+      "strict_acc": 37.142857142857146,
+      "pipeline_acc": 40.476190476190474,
+      "truncated": 18,
+      "loops": 11,
+      "mean_chars": 13509.014285714286
+    }
+  },
+  "by_question_type": {
+    "multiple-choice": {
+      "n": 847,
+      "strict_correct": 400,
+      "pipeline_correct": 412,
+      "strict_acc": 47.22550177095631,
+      "pipeline_acc": 48.642266824085006,
+      "truncated": 23,
+      "loops": 15,
+      "mean_chars": 5959.752066115702
+    },
+    "open": {
+      "n": 53,
+      "strict_correct": 8,
+      "pipeline_correct": 4,
+      "strict_acc": 15.09433962264151,
+      "pipeline_acc": 7.547169811320755,
+      "truncated": 3,
+      "loops": 1,
+      "mean_chars": 8366.943396226416
+    }
+  },
+  "by_response_group": {
+    "answer_only": {
+      "n": 0,
+      "strict_correct": 0,
+      "pipeline_correct": 0,
+      "strict_acc": NaN,
+      "pipeline_acc": NaN,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": NaN
+    },
+    "reasoned": {
+      "n": 874,
+      "strict_correct": 402,
+      "pipeline_correct": 408,
+      "strict_acc": 45.995423340961096,
+      "pipeline_acc": 46.681922196796336,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 3270.594965675057
+    },
+    "truncated": {
+      "n": 26,
+      "strict_correct": 6,
+      "pipeline_correct": 8,
+      "strict_acc": 23.076923076923077,
+      "pipeline_acc": 30.76923076923077,
+      "truncated": 26,
+      "loops": 16,
+      "mean_chars": 101263.76923076923
+    }
+  },
+  "by_num_images": {
+    "0": {
+      "n": 900,
+      "strict_correct": 408,
+      "pipeline_correct": 416,
+      "strict_acc": 45.333333333333336,
+      "pipeline_acc": 46.22222222222222,
+      "truncated": 26,
+      "loops": 16,
+      "mean_chars": 6101.508888888889
+    }
+  }
+}
