@@ -1,0 +1,213 @@
+{
+  "raw": "outputs/raw.jsonl",
+  "raw_sha256": "55694f837678902fd4bfa0b6688040840803d81d02843f2af6fc808b846f8bc4",
+  "fallback_file": null,
+  "parser": {
+    "source": "MMMU-Benchmark/MMMU @ 268471d0d488258990025331c7528359c324aa25 mmmu/utils/eval_utils.py",
+    "sha256": "cc1a89b4a27f697702d340bc6a7578b5237135754ddaa9ef105239a3d9847367",
+    "change": "random guess on parse failure -> no answer (wrong)"
+  },
+  "n": 900,
+  "strict": {
+    "correct": 535,
+    "micro_acc": 59.44444444444444,
+    "macro_acc": 59.44444444444444,
+    "parse_failed": 6
+  },
+  "pipeline": {
+    "correct": 536,
+    "micro_acc": 59.55555555555556,
+    "macro_acc": 59.55555555555556,
+    "parse_failed": 6,
+    "methods": {
+      "official": 818,
+      "answer_line": 64,
+      "boxed": 12,
+      "none": 6
+    },
+    "fallback_items": 0,
+    "fallback_gain": 0,
+    "fallback_loss": 0,
+    "explicit_answer_gain": 1,
+    "explicit_answer_loss": 0
+  },
+  "delta_vs_official_pp": {
+    "strict": -7.955555555555563,
+    "pipeline": -7.8444444444444485
+  },
+  "generation": {
+    "truncated": 71,
+    "loops": 23,
+    "mean_chars": 3095.288888888889,
+    "median_chars": 21.5,
+    "answer_only": 605
+  },
+  "by_discipline": {
+    "Art & Design": {
+      "n": 120,
+      "strict_correct": 73,
+      "pipeline_correct": 73,
+      "strict_acc": 60.833333333333336,
+      "pipeline_acc": 60.833333333333336,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 16.583333333333332
+    },
+    "Business": {
+      "n": 150,
+      "strict_correct": 98,
+      "pipeline_correct": 98,
+      "strict_acc": 65.33333333333333,
+      "pipeline_acc": 65.33333333333333,
+      "truncated": 11,
+      "loops": 5,
+      "mean_chars": 3728.6666666666665
+    },
+    "Science": {
+      "n": 150,
+      "strict_correct": 78,
+      "pipeline_correct": 79,
+      "strict_acc": 52.0,
+      "pipeline_acc": 52.666666666666664,
+      "truncated": 7,
+      "loops": 3,
+      "mean_chars": 2610.0466666666666
+    },
+    "Health & Medicine": {
+      "n": 150,
+      "strict_correct": 96,
+      "pipeline_correct": 96,
+      "strict_acc": 64.0,
+      "pipeline_acc": 64.0,
+      "truncated": 2,
+      "loops": 1,
+      "mean_chars": 843.88
+    },
+    "Humanities & Social Science": {
+      "n": 120,
+      "strict_correct": 85,
+      "pipeline_correct": 85,
+      "strict_acc": 70.83333333333333,
+      "pipeline_acc": 70.83333333333333,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 47.90833333333333
+    },
+    "Tech & Engineering": {
+      "n": 210,
+      "strict_correct": 105,
+      "pipeline_correct": 105,
+      "strict_acc": 50.0,
+      "pipeline_acc": 50.0,
+      "truncated": 51,
+      "loops": 14,
+      "mean_chars": 8098.247619047619
+    }
+  },
+  "by_question_type": {
+    "multiple-choice": {
+      "n": 847,
+      "strict_correct": 529,
+      "pipeline_correct": 530,
+      "strict_acc": 62.455726092089726,
+      "pipeline_acc": 62.57378984651712,
+      "truncated": 71,
+      "loops": 23,
+      "mean_chars": 3288.6044864226683
+    },
+    "open": {
+      "n": 53,
+      "strict_correct": 6,
+      "pipeline_correct": 6,
+      "strict_acc": 11.320754716981131,
+      "pipeline_acc": 11.320754716981131,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 5.886792452830188
+    }
+  },
+  "by_response_group": {
+    "answer_only": {
+      "n": 605,
+      "strict_correct": 336,
+      "pipeline_correct": 336,
+      "strict_acc": 55.53719008264463,
+      "pipeline_acc": 55.53719008264463,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 14.87107438016529
+    },
+    "reasoned": {
+      "n": 224,
+      "strict_correct": 180,
+      "pipeline_correct": 181,
+      "strict_acc": 80.35714285714286,
+      "pipeline_acc": 80.80357142857143,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 4610.6875
+    },
+    "truncated": {
+      "n": 71,
+      "strict_correct": 19,
+      "pipeline_correct": 19,
+      "strict_acc": 26.760563380281692,
+      "pipeline_acc": 26.760563380281692,
+      "truncated": 71,
+      "loops": 23,
+      "mean_chars": 24562.943661971833
+    }
+  },
+  "by_num_images": {
+    "1": {
+      "n": 857,
+      "strict_correct": 511,
+      "pipeline_correct": 512,
+      "strict_acc": 59.62660443407235,
+      "pipeline_acc": 59.74329054842474,
+      "truncated": 71,
+      "loops": 23,
+      "mean_chars": 3176.193698949825
+    },
+    "2": {
+      "n": 24,
+      "strict_correct": 17,
+      "pipeline_correct": 17,
+      "strict_acc": 70.83333333333333,
+      "pipeline_acc": 70.83333333333333,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 1772.3333333333333
+    },
+    "3": {
+      "n": 5,
+      "strict_correct": 2,
+      "pipeline_correct": 2,
+      "strict_acc": 40.0,
+      "pipeline_acc": 40.0,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 347.8
+    },
+    "4": {
+      "n": 8,
+      "strict_correct": 2,
+      "pipeline_correct": 2,
+      "strict_acc": 25.0,
+      "pipeline_acc": 25.0,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 98.375
+    },
+    "5": {
+      "n": 6,
+      "strict_correct": 3,
+      "pipeline_correct": 3,
+      "strict_acc": 50.0,
+      "pipeline_acc": 50.0,
+      "truncated": 0,
+      "loops": 0,
+      "mean_chars": 3116.6666666666665
+    }
+  }
+}

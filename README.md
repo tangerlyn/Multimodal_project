@@ -52,6 +52,31 @@ repository. `bash run.sh submission NAME` also writes the answer file for the of
 - **Engineering subjects** rise from 47.3% to 53.0% over the three evaluations (p = 0.008); Tech & Engineering is still
   the weakest discipline on MMMU test.
 
+![Truncated answers per evaluation, and correct answers on the 88 MMMU val items that Base truncates](docs/figures/truncation.png)
+
+### Truncation analysis: why not just ask for the answer first?
+
+Truncation is the main error H-SFT fixes, so a natural question is whether a prompt that asks for the answer first
+would avoid it. It does not pay off. Item-by-item on MMMU val, same 900 questions
+([`MMD/scripts/truncation_analysis.py`](MMD/scripts/truncation_analysis.py) recomputes every number here and draws the
+figure):
+
+- **Answering first costs more than truncation does.** The Assignment 1 run that asked for the answer directly
+  ([`MMD/results/raw_baseline`](MMD/results/raw_baseline)) scored 59.56, against 65.22 for the chain-of-thought recipe
+  (63.3 vs 56.7 in a 90-item A/B at the same seed and token budget, see
+  [baseline/docs/best_run.md](baseline/docs/best_run.md)).
+  The model generates left to right, so an answer written first cannot use any of the reasoning that follows it.
+- **On the 88 items Base truncates,** Base with the fallback pass gets 31 right and the answer-first run 35 (p = 0.60).
+  Swapping in the answer-first answers for Base's truncated items gives +4 items (66.00%), less than simply retrying
+  them (+10, 66.67%). On H-SFT the same swap loses 4 items: of its 47 truncated items, 20 also truncate when asked to
+  answer directly, and there the answer-first run gets 2 right against 10 for H-SFT's fallback.
+- **H-SFT gets 43 of those 88 right** (Base 31; H-SFT only 24, Base only 12; p = 0.065), mostly by finishing 60 of
+  them. The cost is 19 items that H-SFT newly truncates: Base got 14 of them right, H-SFT 7 (p = 0.039). Net, +6 items
+  (590 → 596).
+
+The answer-first run differs in more than the prompt (seed 42, images ≤ 1,003,520 pixels, 8,192-token cap), so these
+numbers compare two settings, not a prompt-only ablation.
+
 ### Other runs (MMMU val, same recipe)
 
 | Run | Training | Pipeline | Truncated |
@@ -146,7 +171,8 @@ bash run.sh eval h_sft_mine work/merged/H-sft-mine val
 | [`release/H-sft-lora/`](release/H-sft-lora) | The adapter behind every H-SFT number (47 MB) and its `training_run.json` |
 | [`data/`](data) | `items.jsonl` (3,267 ViRL39K questions), `gen.jsonl` (24,000 base-model solutions), `build2/` (637 SFT examples, 672 DPO pairs, 63 validation pairs) |
 | [`H/`](H) | The pipeline in order: `step01` pick questions … `step05` train, `step06` merge, `step07`–`step10` evaluator patches (no-image, MMMU-Pro, MMMU test, chunked writing), `step11` retry, `step12` submission file. `step13`–`step16`: side experiments (teacher solutions, synthetic questions) |
-| [`MMD/`](MMD) | MMMU evaluator (vLLM), run outputs and scores. Also the connector-training code of an earlier phase (`src/train_merger.py`, `spatial_merger.py`, `residual_merger.py`) |
+| [`MMD/`](MMD) | MMMU evaluator (vLLM), run outputs and scores, and `scripts/truncation_analysis.py`. Also the connector-training code of an earlier phase (`src/train_merger.py`, `spatial_merger.py`, `residual_merger.py`) |
+| [`docs/figures/`](docs/figures) | Figures in this README (`truncation_analysis.py --plot` redraws them) |
 | [`colab/`](colab) | The Colab and lab-server scripts the results were produced with, kept as a record (they assume `/content` paths) |
 | [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) | Every experiment, why it was run and what it gave (Korean) |
 | [`baseline/`](baseline) | Assignment 1 as submitted (2026-09-26): baseline evaluation report [`baseline/reports/mmmu_baseline.md`](baseline/reports/mmmu_baseline.md), the evaluator at that time, and its outputs |
