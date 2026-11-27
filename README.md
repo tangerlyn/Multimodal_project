@@ -1,172 +1,161 @@
-# MMD — MMMU-val evaluation pipeline for Qwen3-VL-4B-Instruct
+# H-SFT: training Qwen3-VL-4B-Instruct on its own correct solutions (MMMU)
 
-One command runs generation, schema validation, scoring and the report tables. The raw model
-responses (`outputs/<name>.jsonl`) follow [docs/raw_schema.md](docs/raw_schema.md); scoring is
-`scripts/score_mmmu.py` (official MMMU parser, pinned). A fine-tuned model is evaluated by changing
-only `--model_path` (merged checkpoint) or `--lora_path` (adapter).
+Team 1 (1팀), Multimodal Deep Learning, Fall 2026: 김규린, 김재형, 박건우, 서정우
 
-```bash
-bash scripts/run_mmmu_eval.sh --preset best
-```
+We fine-tune **Qwen3-VL-4B-Instruct** for MMMU / MMMU-Pro. The final model, **H-SFT**, is a LoRA on the language
+model's attention only, trained on 637 solutions that the base model itself wrote and got right. The vision encoder and
+the connector are frozen. Everything (evaluation, retry, training, merging, MMMU test submission file) runs through one
+script, [`run.sh`](run.sh).
 
-| | |
-|---|---|
-| Model | `Qwen/Qwen3-VL-4B-Instruct` @ `ebb281ec70b05090aa6165b016eac8ec08e71b17`, bf16 |
-| Data | `MMMU/MMMU` @ `98e6ac0cb9b7b2cd2c991b85a50762edc4aedc68`, `validation`, 30 configs, 900 items |
-| Backend | vLLM offline API (needed for `presence_penalty`; batched generation) |
-| Sampling | model card "Generation Hyperparameters" (VL) = Qwen3-VL README "Evaluation Reproduction" (Instruct): `temperature=0.7 top_p=0.8 top_k=20 repetition_penalty=1.0 presence_penalty=1.5`. Seed: 42 in the committed baseline, 3407 (README value) is now the default |
-| Budget | `max_new_tokens=8192`, `max_pixels=1003520` (1280×28×28), `min_pixels` processor default |
-| Prompt | MMMU official repo format, see [src/prompt.py](src/prompt.py) |
+## Results
 
-## Run
+All scores are "Pipeline" accuracy (explained under [Evaluation](#evaluation)). Base and H-SFT always use the same
+evaluation recipe (`best_r2u`). Per-item files for every number with a path are in [`MMD/results/`](MMD/results).
 
-```bash
-pip install -r requirements.txt
-```
+### MMMU val (900 items)
 
-```bash
-bash scripts/run_mmmu_eval.sh --preset best --model_path Qwen/Qwen3-VL-4B-Instruct --data_root "$HF_DATASETS_CACHE"
-```
+| | Base | H-SFT | Qwen model card |
+|---|---|---|---|
+| Single run, seed 3407 | 65.56 (88 truncated) | **66.22** (47 truncated) | |
+| + retry of truncated answers | 66.67 | **66.44** (13 truncated) | 67.4 |
+| Reproduction run, 2026-11-22 (same adapter, fresh Colab) | | 66.89 (45 truncated) → **67.00** with retry | |
 
-### Presets
+The reproduction run used only this repository on an empty Colab A100. Its per-item files are not in the repository;
+the first run's are (`MMD/results/h_sft_s3407`, `MMD/results/h_sft_retry`). The difference between the two runs (about
+0.5 percentage points) is vLLM run-to-run variation: the base model alone moved between 64.22% and 65.78% when only the
+seed changed.
 
-| Preset | Settings | Why |
+### MMMU-Pro (1,730 items each, truncated answers retried on both sides)
+
+| | Base | H-SFT |
 |---|---|---|
-| `baseline` | seed 42, `max_new_tokens` 8192, MMMU-repo prompt, inline images, `max_pixels` 1003520, no upscaling | the committed first run (`outputs/raw.jsonl`, 59.44%) |
-| `official` | seed 3407, 32768 tokens, `min/max_pixels` 1003520/4014080, VLMEvalKit prompt, images first | Qwen's own MMMU script (`QwenLM/Qwen3-VL` `evaluation/mmmu/run_mmmu.py`) and README "Evaluation Reproduction" |
-| `best` | `official` + `--cot qwen` + `--answer_line` + `--fallback` | **measured 65.22% (587/900), strict 63.00%; see [docs/best_run.md](docs/best_run.md)**. Chosen because the baseline showed 80% accuracy when the model reasons and finishes vs 56% when it answers directly and 27% when it is cut off, so the extras push for reasoning, give it a termination target, and recover an answer when it still runs out |
+| Standard, 10 options ([base](MMD/results/pro10_base_retry_c32), [H-SFT](MMD/results/pro10_h_sft_retry_c32)) | 55.61 | **56.71** |
+| Vision ¹ | 52.54 | **53.58** |
+| Mean | 54.08 | **55.14** (+1.06) |
+| Qwen model card (MMMU-Pro full) | 53.2 | |
 
-Flags given after `--preset` override the preset. Every setting is recorded in `<out stem>.run_meta.json`.
-The sampling recipe (`temperature 0.7, top_p 0.8, top_k 20, repetition_penalty 1.0, presence_penalty 1.5`)
-is the same in every preset and is not a flag.
+¹ The per-item files of the vision retry are not in the repository. Before retry: [base](MMD/results/prov_base_s3407)
+51.33, [H-SFT](MMD/results/prov_h_sft_s3407) 52.95.
 
-### What one run produces
+### MMMU test (10,500 items, H-SFT, no retry)
 
-| File | Contents |
-|---|---|
-| `outputs/<name>.jsonl` | one raw record per item (`docs/raw_schema.md`) |
-| `outputs/<name>.fallback.jsonl` | with `--fallback`: second-pass continuations for truncated items |
-| `outputs/<name>.run_meta.json` (`run_meta.json` for `raw`) | versions, GPU, every effective setting, prompt hash, timing, peak VRAM |
-| `results/<name>/results.md` | the report tables: 30 subjects + macro average (with the formula), comparison to 67.4, response-group and discipline breakdowns, parser statistics |
-| `results/<name>/by_subject.csv`, `summary.json`, `scored.jsonl` | the same numbers as data, and one scored line per item |
+**63.63** (Strict 61.48, 677 truncated). By discipline: Business 75.98, Humanities & Social Science 73.81, Health &
+Medicine 65.01, Art & Design 61.05, Science 61.01, Tech & Engineering 56.32. Scored locally with the answers included in
+the Hugging Face `MMMU/MMMU` test split; the base model was not run on test, and the output files are not in the
+repository. `bash run.sh submission NAME` also writes the answer file for the official MMMU evaluation server.
 
-### Scoring (`scripts/score_mmmu.py`)
+### What H-SFT changes
 
-Parser: MMMU official `mmmu/utils/eval_utils.py` at commit `268471d`, vendored byte-identical as
-`scripts/mmmu_official_eval_utils.py` (SHA256 checked at load), with one change made in memory: a parse
-failure counts as wrong instead of a random guess. Two scores are always reported from the same responses:
+- **Truncation, not accuracy.** On MMMU val the accuracy difference is within run-to-run noise (McNemar p = 0.67), but
+  truncated answers drop in all three evaluations (88 → 47, 191 → 114, 174 → 91; p < 0.001 each). On the 793 items
+  that both models finish, accuracy is the same (68.7 vs 68.9). H-SFT gains by finishing its reasoning.
+- **Engineering subjects** rise from 47.3% to 53.0% over the three evaluations (p = 0.008); Tech & Engineering is still
+  the weakest discipline on MMMU test.
 
-- **strict**: the official parser only.
-- **pipeline**: before the official rules, (1) for items in the fallback file, the second-pass letter
-  replaces the response; (2) the last `Answer: X` line, else the last `\boxed{X}`, is taken as the answer
-  (open questions: the last `Answer:` line is parsed instead of the whole text). Everything else is the
-  official parser. On the baseline this changes one item (`validation_Math_30`, a correct boxed C that the
-  last-bracket rule mis-read as E).
+### Other runs (MMMU val, same recipe)
 
-`results.md` states which score each table uses. Overall = mean of the 30 subject accuracies; with 30
-items per subject this equals correct/900, and the file prints both.
+| Run | Training | Pipeline | Truncated |
+|---|---|---|---|
+| [H-DPO](MMD/results/h_dpo_s3407) | DPO (β 0.1) on 672 correct / wrong pairs from the same data | 65.33 | 107 |
+| [H-DPO, larger pairs](MMD/results/h_dpot_s3407) | DPO on 1,116 pairs | 64.56 | 104 |
+| [T-SFT](MMD/results/t_sft_s3407) | SFT on 2,153 solutions of Qwen3-VL-32B (teacher) | 62.78 | 14 |
+| [Base, no image](MMD/results/base_noimg_s3407) | – | 46.22 | 26 |
+| [H-SFT, no image](MMD/results/h_sft_noimg_s3407) | – | 48.89 | 13 |
 
-`--model_path` is an HF repo id (downloaded at the pinned revision) or a local checkpoint
-directory, which is how a fine-tuned model is re-evaluated with identical settings.
-`--data_root` is the `datasets` cache directory; raw hub downloads follow `HF_HOME`.
-The script runs generation, then `scripts/check_raw.py` on the output, and exits non-zero if a
-full run does not contain exactly 900 valid records.
+The full history (evaluation setup, a pilot on engineering diagrams, connector training, team tracks, teacher
+distillation) is in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) (Korean).
 
-| Flag | Default | |
+## Method
+
+1. **Questions:** 3,000 [ViRL39K](https://huggingface.co/datasets/TIGER-Lab/ViRL39K) questions with one image and a
+   rule-checkable answer (one option letter or one number). MMMU val images were removed by hash. No MMMU or MMMU-Pro
+   data is used for training.
+2. **Solutions:** the base model writes 8 solutions per question with the evaluation sampling (T 0.7, top_p 0.8,
+   top_k 20, presence penalty 1.5), images 1.0–2.0 M pixels.
+3. **Checking (rules, no LLM judge):** a solution counts only if it finished and ends with a parsable `Answer:` line.
+   Multiple choice: the letter must match. Numbers: relative error at most 0.1%. 17,875 of 24,000 solutions were valid,
+   86.7% of them correct.
+4. **Selection:** keep questions the base model solves 25–85% of the time with at least 6 valid solutions (245
+   questions); drop solutions over 1,500 tokens. SFT uses the correct ones, shortest first (637 examples).
+5. **Training:** LoRA r16 / α32 on attention q·k·v·o of the language model (11.8 M parameters), lr 5e-5, 1 epoch
+   (80 optimizer steps), gradient accumulation 8, seed 3407, about 40 minutes on one A100 40 GB.
+
+## Evaluation
+
+The evaluator is [`MMD/`](MMD) (vLLM 0.29). Recipe `best_r2u`, used for every number above: Qwen/VLMEvalKit MMMU prompt
+with the image first, Qwen's chain-of-thought sentence and a final `Answer: X` line; images fixed at 4,014,080 pixels;
+up to 32,768 new tokens; seed 3407 with a per-item seed.
+
+- **Strict:** the official MMMU answer parser ([`MMD/scripts/mmmu_official_eval_utils.py`](MMD/scripts/mmmu_official_eval_utils.py),
+  pinned by SHA-256), except that a parse failure counts as wrong instead of a random guess.
+- **Pipeline:** Strict, preceded by two deterministic steps. (1) If an answer was truncated, or a multiple-choice answer
+  contains no option letter, a greedy second pass continues it with `Therefore, the final answer is (` for at most 16
+  tokens, and its first letter is the answer. (2) Otherwise the last `Answer: X` line, then the last `\boxed{X}`, is
+  taken before the official parser.
+- **Retry:** answers that still hit the 32,768-token cap are regenerated with seed 1001, then 1002; a finished retry
+  replaces the original.
+
+Base vs H-SFT comparisons use exact McNemar tests on the same items.
+
+## Reproduce
+
+Requirements: one NVIDIA GPU (A100 40 GB or larger), Linux, Python 3.10+, about 60 GB of disk, and access to Hugging Face
+(model `Qwen/Qwen3-VL-4B-Instruct` at revision `ebb281ec`, datasets `MMMU/MMMU`, `MMMU/MMMU_Pro`, `TIGER-Lab/ViRL39K`).
+Google Colab with an A100 runtime works: clone the repository and run the same commands in a terminal cell.
+
+```bash
+bash run.sh setup        # vLLM 0.29, PEFT
+bash run.sh check        # GPU, data files, a one-item-per-subject smoke run
+bash run.sh reproduce    # merge release/H-sft-lora -> MMMU val (900) -> retry on truncation
+```
+
+Expect about ±1 percentage point from the values above: vLLM sampling differs slightly between GPU types.
+
+| Command | What it does | Time on one A100 |
 |---|---|---|
-| `--out` | `outputs/raw.jsonl` | restart with the same `--out` skips ids already written |
-| `--subjects` | all 30 | comma-separated config names |
-| `--limit` | none | first N items of each selected subject |
-| `--max_new_tokens` | 8192 | at 1024, 18% of responses were cut off (see report §3.2) |
-| `--max_pixels` | 1003520 | larger images are downscaled (bicubic, aspect kept) before the processor |
-| `--min_pixels` | none | with a value, images are brought into `[min_pixels, max_pixels]` by `qwen_vl_utils` `smart_resize` rules (sides rounded to multiples of 32); Qwen's MMMU script uses 1003520 |
-| `--prompt_style` | `mmmu` | `mmmu`: MMMU official repo text (baseline). `vlmevalkit`: the `Question: / Options: / Please select…` text of Qwen's MMMU script and VLMEvalKit |
-| `--image_position` | `inline` | `inline`: image replaces its `<image N>` token (baseline). `first`: all images before the text, tokens kept literal, as Qwen's script does |
-| `--cot` | `none` | `qwen`: the sentence Qwen's MMMU script adds with `--use-cot` ("If you are uncertain or the problem is too complex, make a reasoned guess … Avoid repeating steps indefinitely … Determine whether to think step by step …"), verbatim; it leaves the decision to reason to the model. `forced`: "Think step by step and explain your reasoning before giving the answer." (ours), for runs whose errors must be diagnosable |
-| `--lora_path` | none | LoRA adapter directory applied through vLLM (`enable_lora`, `--max_lora_rank` 64) on top of `--model_path`; a merged checkpoint can instead be passed as `--model_path` |
-| `--no_score` | off | stop after generation and `check_raw.py` |
-| `--answer_line` | off | appends `End your response with a final line of the form "Answer: X"` to the prompt: a termination target against looping and an anchor for the parser |
-| `--fallback` | off | second pass for responses that hit the token limit or (multiple-choice) contain no valid option letter: original prompt + response with any verbatim loop cut off + `Therefore, the final answer is (`, greedy, `--fallback_max_tokens` (16). Written to `<out stem>.fallback.jsonl`; the raw file is untouched |
-| `--seed` | 3407 | Qwen3-VL README "Evaluation Reproduction" value; the baseline run used 42. Per-item seed is derived from this and the item id |
-| `--max_model_len`, `--max_num_seqs`, `--gpu_memory_utilization` | 16384, 32, 0.90 | vLLM engine |
+| `bash run.sh merge [LORA] [OUT]` | LoRA + base → full checkpoint (default `release/H-sft-lora` → `work/merged/H-sft`) | 2 min |
+| `bash run.sh eval NAME MODEL [DATASET]` | Generate and score. `MODEL` = `base` or a checkpoint folder. `DATASET` = `val`, `pro10` (MMMU-Pro standard), `pro_vision`, `test` | val 1–2 h, Pro 3–4 h, test about 25 h |
+| `bash run.sh retry NAME MODEL [DATASET]` | Regenerate truncated answers of `NAME` (seeds 1001, 1002) → `NAME_retry` | 30–60 min |
+| `bash run.sh submission NAME` | `MMD/results/NAME/scored.jsonl` → `MMD/submissions/NAME.json` for the MMMU test server | seconds |
+| `bash run.sh build` | `data/gen.jsonl` → `data/build2` (training data; recreates it exactly) | seconds, CPU |
+| `bash run.sh virl` | Download ViRL39K images to `data/virl` (needed by `train` and `generate`) | 10–20 min |
+| `bash run.sh train [sft\|dpo]` | `data/build2` → `work/runs/H-sft/lora` | 40 min |
+| `bash run.sh generate` | From scratch: pick ViRL39K questions, sample 8 solutions each, build the training data | 5–8 h |
 
-Smoke test, one item from every subject (30 items, exercises all 30 configs):
+Evaluations resume from `MMD/outputs/NAME.jsonl` if interrupted; scores land in `MMD/results/NAME/` (`summary.json`,
+`results.md`, `scored.jsonl`, `by_subject.csv`). Examples:
 
 ```bash
-bash scripts/run_mmmu_eval.sh --preset best --limit 1 --out outputs/smoke.jsonl
+bash run.sh eval base_val base val                          # base model, MMMU val
+bash run.sh eval pro10_h_sft work/merged/H-sft pro10        # H-SFT, MMMU-Pro standard
+bash run.sh eval test_h_sft work/merged/H-sft test          # MMMU test
+bash run.sh submission test_h_sft
+
+# train your own adapter instead of using the released one
+bash run.sh virl
+bash run.sh train sft
+bash run.sh merge work/runs/H-sft/lora work/merged/H-sft-mine
+bash run.sh eval h_sft_mine work/merged/H-sft-mine val
 ```
 
-Full run with the best settings (default `--out outputs/raw.jsonl`; use another name to keep an
-existing file):
+## Repository layout
 
-```bash
-bash scripts/run_mmmu_eval.sh --preset best --out outputs/best.jsonl
-```
+| Path | Content |
+|---|---|
+| [`run.sh`](run.sh) | The single entry point |
+| [`release/H-sft-lora/`](release/H-sft-lora) | The adapter behind every H-SFT number (47 MB) and its `training_run.json` |
+| [`data/`](data) | `items.jsonl` (3,267 ViRL39K questions), `gen.jsonl` (24,000 base-model solutions), `build2/` (637 SFT examples, 672 DPO pairs, 63 validation pairs) |
+| [`H/`](H) | The pipeline in order: `step01` pick questions … `step05` train, `step06` merge, `step07`–`step10` evaluator patches (no-image, MMMU-Pro, MMMU test, chunked writing), `step11` retry, `step12` submission file. `step13`–`step16`: side experiments (teacher solutions, synthetic questions) |
+| [`MMD/`](MMD) | MMMU evaluator (vLLM), run outputs and scores. Also the connector-training code of an earlier phase (`src/train_merger.py`, `spatial_merger.py`, `residual_merger.py`) |
+| [`colab/`](colab) | The Colab and lab-server scripts the results were produced with, kept as a record (they assume `/content` paths) |
+| [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) | Every experiment, why it was run and what it gave (Korean) |
+| [`baseline/`](baseline) | Assignment 1 as submitted (2026-09-26): baseline evaluation report [`baseline/reports/mmmu_baseline.md`](baseline/reports/mmmu_baseline.md), the evaluator at that time, and its outputs |
 
-Fine-tuned model, identical settings:
+## Notes
 
-```bash
-bash scripts/run_mmmu_eval.sh --preset best --model_path /path/to/merged_checkpoint --out outputs/ft.jsonl
-```
-
-```bash
-bash scripts/run_mmmu_eval.sh --preset best --lora_path /path/to/adapter --out outputs/ft_lora.jsonl
-```
-
-Re-score an existing raw file without generating:
-
-```bash
-python scripts/score_mmmu.py outputs/raw.jsonl
-```
-
-Ablation on a few subjects, kept apart from the baseline:
-
-```bash
-bash scripts/run_mmmu_eval.sh --subjects Math,Physics --max_pixels 4014080 --out outputs/ablation_pixels.jsonl
-```
-
-## Colab (A100)
-
-```python
-!git clone <repo-url> MMD && cd MMD && pip install -q -r requirements.txt
-```
-
-vLLM replaces Colab's torch 2.11 (CUDA 12.8) with torch 2.13 (CUDA 13.0) but leaves Colab's
-`torchaudio==2.11.0+cu128` in place because the version number already matches, and
-`transformers` then fails to import with a CUDA-version mismatch. Reinstall it from PyPI:
-
-```python
-!pip install -q --force-reinstall --no-deps torchaudio==2.11.0
-```
-
-Then:
-
-```python
-%cd MMD
-!nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
-!bash scripts/run_mmmu_eval.sh --preset best --limit 1 --out outputs/smoke.jsonl
-!bash scripts/run_mmmu_eval.sh --preset best --out outputs/best.jsonl
-!pip freeze > requirements.lock.txt
-```
-
-Run through `!bash`, not by importing the module in a cell: vLLM starts its engine in a
-subprocess. Commit `outputs/best.jsonl`, `outputs/best.fallback.jsonl`, `outputs/best.run_meta.json`,
-`results/best/` and `requirements.lock.txt` afterwards; Colab storage does not persist.
-
-Budget for `best` on an A100 40GB: `max_model_len` 65536 needs about 9.6 GiB of KV cache (36 layers ×
-8 KV heads × 128 dims × 2 bytes × 2), which fits next to the 8 GiB of weights on a 24 GB card as well.
-Expect a longer run than the baseline's 37 minutes: images are up to 4× larger and a looping response
-now consumes 32768 tokens before the fallback pass recovers its answer.
-
-## Layout
-
-```
-scripts/run_mmmu_eval.sh          one-command entry point: presets, generation, check, scoring
-scripts/check_raw.py              schema and count validation (stdlib only)
-scripts/score_mmmu.py             strict + pipeline scoring, extended metrics, results.md
-scripts/mmmu_official_eval_utils.py  MMMU official parser @ 268471d, byte-identical (Apache-2.0)
-src/data.py                       30-config loader at the pinned dataset revision
-src/prompt.py                     prompt styles, CoT / answer-line text, <image N> placement, smart_resize, loop trimming
-src/eval_mmmu.py                  vLLM generation (+ LoRA), fallback pass, raw.jsonl + run_meta.json
-docs/raw_schema.md                output contract for the raw and fallback files
-```
+- Image paths inside `data/*.jsonl` were written on Colab (`/content/virl/...`); the scripts map them to `$VIRL_DIR`.
+- The MMMU-Pro vision numbers used a 16,384-token cap; the standard numbers use 32,768 for the items still truncated at
+  16,384.
+- Code from elsewhere: `MMD/scripts/mmmu_official_eval_utils.py` is the answer parser of the official
+  [MMMU repository](https://github.com/MMMU-Benchmark/MMMU); the prompt text follows Qwen3-VL's
+  `evaluation/mmmu/run_mmmu.py`.
